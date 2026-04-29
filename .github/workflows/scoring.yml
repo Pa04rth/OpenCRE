@@ -1,0 +1,33 @@
+name: PR Scoring System
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  process-score:
+    name: Process PR Score
+    # Ensures it is a PR AND the commenter is an OWNER (you on your fork), COLLABORATOR, or MEMBER
+    if: ${{ github.event.issue.pull_request && contains(fromJson('["OWNER", "COLLABORATOR", "MEMBER"]'), github.event.comment.author_association) }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        run: pip install gspread google-auth
+
+      - name: Execute Regex & Database Script
+        env:
+          GCP_CREDENTIALS: ${{ secrets.GCP_CREDENTIALS }}
+          SHEET_ID: ${{ secrets.SHEET_ID }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          PR_AUTHOR: ${{ github.event.issue.user.login }}
+          PR_URL: ${{ github.event.issue.html_url }}
+        run: python update_score.py
